@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore SystemChallengeAPI/SystemChallengeAPI.slnx
+
+      - name: Build
+        run: dotnet build SystemChallengeAPI/SystemChallengeAPI.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test SystemChallengeAPI/SystemChallengeAPI.slnx --configuration Release --no-build --verbosity normal
