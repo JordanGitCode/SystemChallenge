@@ -59,3 +59,4 @@ nunit-*.xml
 # ETC
 Resources
 .vs
+*.user
