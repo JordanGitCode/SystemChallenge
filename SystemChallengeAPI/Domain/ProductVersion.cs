@@ -1,4 +1,6 @@
-class ProductVersion
+namespace SystemChallengeAPI.Domain;
+
+public class ProductVersion
 {
     public Guid Id {get; set;}
     public Guid ProductId {get; set;}
