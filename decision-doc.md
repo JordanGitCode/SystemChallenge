@@ -169,17 +169,31 @@ var deleted = await db.Products.IgnoreQueryFilters()
 
 **How identity touches the DB:** as a **reference, not an owned entity.** The audit fields (`CreatedBy`, `DeletedBy`, `DecidedBy`) are `string` — they store the user's stable identifier from the token (`sub` / email), stamped straight off the request. There is deliberately no foreign key to a user table.
 
-**Note on the `UserRole` enum:** it is **not persisted** — nothing in the DB references it. With an external IdP, roles arrive as string claims. The enum's job is on the authorization side: strongly-typed role names / policy constants for parsing and matching claims, not a stored column.
+**On the removed `UserRole` enum:** it was **deleted**. Roles are never persisted and authorization runs on string role claims via the `Roles`/`Policies` constants (§8b), so a domain role enum was dead code. Removing it is the "less is more" call — and a good defense line: *"once identity moved to Entra, roles became claims, not domain state, so the enum had no home."*
 
 **Alternative considered — ASP.NET Core Identity (rejected):** would put `AspNetUsers` / `AspNetRoles` / `AspNetUserRoles` in the application DB and manage accounts/passwords in-app. Self-contained and easier to demo, but rejected because the spec tests OIDC specifically, *"assume large enterprise"* points to central identity, and it's more to build with weaker separation of concerns.
 
 **Trade-off accepted — demo friction & external dependency:** the cost of Entra is a tenant + app registration, App-role assignment, and a token-acquisition flow to get test tokens (Postman / a client app / `az`), plus a dependency on Entra being reachable at demo time. Chosen anyway for the real enterprise OIDC story and Microsoft-stack fit. **Duende IdentityServer (local)** remains the fallback if Entra setup proves too costly for the timebox; ASP.NET Core Identity is the last resort ("demo-ability over enterprise-fidelity"). Note: because the API only *validates* tokens (it doesn't call downstream APIs), **no client secret is needed** — only non-secret tenant/client IDs — so nothing sensitive lands in config.
 
-### 8b. Authorization (planned)
+### 8b. Authorization (role policies implemented; resource handler stubbed)
 
-**Decision:** Role-based policies (`CanCapture`, `CanApprove`, `CanSoftDelete`), enforced **server-side** (not just UI), plus an authorization handler for workflow-transition rules (e.g. only a Manager may transition to Approved/Rejected).
+**Decision:** Three named role policies — `CanCapture` (Capturer **or** Manager, since Manager ⊇ Capturer), `CanApprove` (Manager), `CanSoftDelete` (Manager) — enforced **server-side** via `[Authorize(Policy = ...)]`. Role/policy names are defined once in `Roles` / `Policies` static constant classes (no magic strings).
 
-**Why:** the UI can be bypassed; the API is the trust boundary. Only a Manager token succeeds on Approve; a Capturer gets 403.
+**Why:** the UI can be bypassed; the API is the trust boundary. `RequireRole` uses `IsInRole`, which reads the role claim natively.
+
+**The 403 vs 409 distinction (key design point):** two different kinds of rule are kept in separate layers:
+- **Authorization** — *"are you allowed?"* (wrong role) → **403**, handled by policies/handlers in the **Api** layer.
+- **Domain rule** — *"is this legal in the current state?"* (e.g. approving a `Draft`, or an already-`Approved` version) → **409/422**, handled by the state machine in the **Domain** (Day 6).
+
+Conflating these is the classic mistake; a Capturer hitting Approve is a 403, a Manager approving a non-`Pending` version is a 409.
+
+**Resource-based handler (stubbed):** an `ApprovalHandler : AuthorizationHandler<ApprovalRequirement, ProductVersion>` is stubbed to defer to the Manager role for now. Planned enhancement — **separation of duties**: succeed only if Manager **and** approver ≠ author (needs the resource, not just the role, so it can't be a static role check). Registered as `IAuthorizationHandler` in DI (a custom handler silently never runs if unregistered).
+
+**Claim mapping — left ON (decided):** Entra emits the role in a short `roles` claim; the JWT bearer handler's inbound claim mapping rewrites it to the long URI `ClaimTypes.Role`, which is the .NET default role claim type — so `RequireRole` / `[Authorize(Roles=…)]` / `/me` (reading `ClaimTypes.Role`) work with **no extra config**. Disabling `MapInboundClaims` would keep clean short claim names but is pure churn — it forces setting `RoleClaimType = "roles"`, `NameClaimType = "name"`, and retouching `/me`, for identical behavior. Left on deliberately.
+
+**Layering:** policies and the `ApprovalHandler` live in the Api layer (`Authorization/` folder); they may *read* domain types but the ASP.NET `IAuthorizationHandler` must not leak into `Domain`, which stays framework-free (§2).
+
+**Verified:** no token → 401; Capturer → 403; Manager → 200 on a `CanApprove`-protected endpoint.
 
 ---
 
