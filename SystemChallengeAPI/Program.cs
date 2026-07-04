@@ -1,7 +1,9 @@
-using Scalar.AspNetCore;
-using SystemChallengeAPI.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
+using Scalar.AspNetCore;
+using SystemChallengeAPI.Auth;
+using SystemChallengeAPI.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,13 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
       .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.CanCapture, p => p.RequireRole(Roles.Capturer, Roles.Manager))
+    .AddPolicy(Policies.CanApprove, p => p.RequireRole(Roles.Manager))
+    .AddPolicy(Policies.CanSoftDelete, p => p.RequireRole(Roles.Manager));
+
+builder.Services.AddScoped<IAuthorizationHandler, ApprovalHandler>();
 
 builder.Services.AddSqlServer<ApplicationDbContext>
     (builder.Configuration.GetConnectionString("DefaultConnection"));
