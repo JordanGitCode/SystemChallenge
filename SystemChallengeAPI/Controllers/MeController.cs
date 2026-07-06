@@ -9,7 +9,7 @@ namespace SystemChallengeAPI.API
     [ApiController]
     [Route("me")]
     [Authorize]
-    public class MeController : Controller
+    public class MeController : ControllerBase
     {
 
         [HttpGet]

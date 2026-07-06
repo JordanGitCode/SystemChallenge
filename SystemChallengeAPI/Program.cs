@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
+using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using SystemChallengeAPI.Auth;
 using SystemChallengeAPI.Infrastructure;
+using SystemChallengeAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,10 +22,10 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.CanApprove, p => p.RequireRole(Roles.Manager))
     .AddPolicy(Policies.CanSoftDelete, p => p.RequireRole(Roles.Manager));
 
-builder.Services.AddScoped<IAuthorizationHandler, ApprovalHandler>();
-
 builder.Services.AddSqlServer<ApplicationDbContext>
     (builder.Configuration.GetConnectionString("DefaultConnection"));
+
+builder.Services.AddScoped<IProductService, ProductService>();
 
 var app = builder.Build();
 
