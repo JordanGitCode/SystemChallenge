@@ -5,11 +5,13 @@ namespace SystemChallengeAPI.Services
 {
     public interface IProductService
     {
-        Task<ProductResponse> CreateAsync(CreateProductRequest req, string createdBy);
-        Task<ProductResponse> UpdateAsync(Guid id, UpdateProductRequest req, string createdBy);
-        Task<ProductResponse> GetByIdAsync(Guid id);
-        Task<ProductResponse> SubmitVersionForReview(Guid productId, Guid versionId, string submittedBy);
-        Task<ProductResponse> ApproveProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string approvedBy);
-        Task<ProductResponse> RejectProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string rejectedBy);
+        Task<OperationResult<ProductResponse>> CreateAsync(CreateProductRequest req, string createdBy);
+        Task<OperationResult<ProductResponse>> UpdateAsync(Guid id, UpdateProductRequest req, string createdBy);
+        Task<OperationResult<ProductResponse>> GetByIdAsync(Guid id);
+        Task<OperationResult<ProductResponse>> SubmitVersionForReview(Guid productId, Guid versionId, string submittedBy);
+        Task<OperationResult<ProductResponse>> ApproveProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string approvedBy);
+        Task<OperationResult<ProductResponse>> RejectProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string rejectedBy);
+        Task<OperationResult<ProductResponse>> SoftDeleteAsync(Guid id, string deletedBy);
+        Task<OperationResult<ProductResponse>> RestoreAsync(Guid id);
     }
 }
