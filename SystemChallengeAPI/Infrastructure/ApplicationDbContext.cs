@@ -37,6 +37,9 @@ public class ApplicationDbContext : DbContext
                  .WithMany()
                  .HasForeignKey(p => p.CurrentApprovedVersionId)
                  .OnDelete(DeleteBehavior.NoAction);
+
+            product.Navigation(p => p.Versions);
+            product.UsePropertyAccessMode(PropertyAccessMode.Field);
         });
 
         modelBuilder.Entity<ProductVersion>(productVersion =>
