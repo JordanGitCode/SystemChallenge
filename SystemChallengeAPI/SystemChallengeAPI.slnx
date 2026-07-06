@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../SystemChallengeAPI.Tests/SystemChallengeAPI.Tests.csproj" />
   <Project Path="SystemChallengeAPI.csproj" />
 </Solution>
