@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using SystemChallengeAPI.Auth;
@@ -28,8 +29,11 @@ namespace SystemChallengeAPI.Controllers
             var createdBy = User.FindFirstValue(ClaimTypes.Upn)
                             ?? User.Identity?.Name;
 
+            if (createdBy == null)
+                return BadRequest("An unexpected error occurred");
+
             var result = await _products.CreateAsync(req, createdBy!);
-            return CreatedAtAction(nameof(CaptureProduct), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(CaptureProduct), new { id = result.Value!.Id }, result.Value);
         }
 
         [HttpPost("update/{id}")]
@@ -38,8 +42,11 @@ namespace SystemChallengeAPI.Controllers
             var createdBy = User.FindFirstValue(ClaimTypes.Upn)
                             ?? User.Identity?.Name;
 
+            if (createdBy == null)
+                return BadRequest("An unexpected error occurred");
+
             var result = await _products.UpdateAsync(id, req, createdBy!);
-            return Ok(result);
+            return ToActionResult(result);
         }
 
         [HttpPost("submit/{productId}/{versionId}")]
@@ -54,7 +61,7 @@ namespace SystemChallengeAPI.Controllers
             }
 
             var result = await _products.SubmitVersionForReview(productId, versionId, submittedBy);
-            return Ok(result);
+            return ToActionResult(result);
         }
 
         [Authorize(Policy = Policies.CanApprove)]
@@ -71,7 +78,7 @@ namespace SystemChallengeAPI.Controllers
             }
 
             var result = await _products.ApproveProductVersion(workflowStatusChangeRequest, approvedBy);
-            return Ok(result);
+            return ToActionResult(result);
         }
 
         [Authorize(Policy = Policies.CanApprove)]
@@ -88,15 +95,61 @@ namespace SystemChallengeAPI.Controllers
             }
 
             var result = await _products.RejectProductVersion(workflowStatusChangeRequest, rejectedBy);
-            return Ok(result);
+            return ToActionResult(result);
         }
 
-        [Authorize]
+        [Authorize(Policy = Policies.CanSoftDelete)]
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> SoftDeleteProduct(Guid id)
+        {
+            var deletedBy = User.FindFirstValue(ClaimTypes.Upn)
+                            ?? User.Identity?.Name;
+
+            if (deletedBy == null)
+                return BadRequest("An unexpected error has occurred");
+
+            var result = await _products.SoftDeleteAsync(id, deletedBy);
+
+            if (result.Status == OperationStatus.Success)
+                return NoContent();
+
+            return ToActionResult(result);
+        }
+
+        [Authorize(Policy = Policies.CanSoftDelete)]
+        [HttpPost("restore/{id:guid}")]
+        public async Task<IActionResult> RestoreProduct(Guid id)
+        {
+            var result = await _products.RestoreAsync(id);
+            return ToActionResult(result);
+        }
+
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetProductById(Guid id)
         {
-            var product = await _products.GetByIdAsync(id);
-            return product is null ? NotFound() : Ok(product);
+            var result = await _products.GetByIdAsync(id);
+            return ToActionResult(result);
         }
+
+        private IActionResult ToActionResult(OperationResult<ProductResponse> result)
+        {
+
+            switch (result.Status)
+            {
+                case OperationStatus.Success:
+                    return Ok(result.Value);
+                case OperationStatus.NotFound:
+                    return Problem(detail: result.Error, statusCode: StatusCodes.Status404NotFound);
+                case OperationStatus.Forbidden:
+                    return Problem(detail: result.Error, statusCode: StatusCodes.Status403Forbidden);
+                case OperationStatus.InvalidTransition:
+                    return Problem(detail: result.Error, statusCode: StatusCodes.Status409Conflict);
+                default:
+                    return Problem();
+
+            }
+                        
+        }
+
     }
 }

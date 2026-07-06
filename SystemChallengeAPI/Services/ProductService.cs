@@ -16,7 +16,7 @@ namespace SystemChallengeAPI.Services
             _dbContext = dbContext;
         }
 
-        public async Task<ProductResponse> CreateAsync(CreateProductRequest req, string createdBy)
+        public async Task<OperationResult<ProductResponse>> CreateAsync(CreateProductRequest req, string createdBy)
         {
             var now = DateTime.UtcNow;
 
@@ -46,15 +46,15 @@ namespace SystemChallengeAPI.Services
             _dbContext.Products.Add(product);
             await _dbContext.SaveChangesAsync();
 
-            return MapToResponse(product, version);
+            return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
         }
 
-        public async Task<ProductResponse> UpdateAsync(Guid id, UpdateProductRequest req, string createdBy)
+        public async Task<OperationResult<ProductResponse>> UpdateAsync(Guid id, UpdateProductRequest req, string createdBy)
         {
 
             var product = await GetProductByIdAsync(id);
             if (product == null)
-                return null;
+                return OperationResult<ProductResponse>.NotFound("Product not found");
 
             var now = DateTime.UtcNow;
 
@@ -75,13 +75,13 @@ namespace SystemChallengeAPI.Services
             _dbContext.ProductVersions.Add(version);
             await _dbContext.SaveChangesAsync();
 
-            return MapToResponse(product, version);
+            return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
         }
 
         /* 
          * Get Product and the approved version or latest version if none approved 
          */
-        public async Task<ProductResponse> GetByIdAsync(Guid id)
+        public async Task<OperationResult<ProductResponse>> GetByIdAsync(Guid id)
         {
             var product = await _dbContext.Products
                 .AsNoTracking()
@@ -89,49 +89,56 @@ namespace SystemChallengeAPI.Services
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
-                return null;
+                return OperationResult<ProductResponse>.NotFound("Product not found");
 
             var version = product.Versions.FirstOrDefault(v => v.Id == product.CurrentApprovedVersionId);
             if (version == null)
             {
                 version = await GetLatestProductVersion(product);
             }
+            if (version == null)
+            {
+                return OperationResult<ProductResponse>.NotFound("No versions found");
+            }
 
-            return MapToResponse(product, version);
+            return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
         }
 
-        // Change returns
-        public async Task<ProductResponse> SubmitVersionForReview(Guid productId, Guid versionId, string submittedBy)
+        public async Task<OperationResult<ProductResponse>> SubmitVersionForReview(Guid productId, Guid versionId, string submittedBy)
         {
-
             var product = await GetTrackedProductAsync(productId);
-            if (product == null)
-                return null;
+            if (product is null)
+                return OperationResult<ProductResponse>.NotFound("Product not found.");
 
             var version = product.Versions.FirstOrDefault(v => v.Id == versionId);
-            if (version == null)
-                return null;
+            if (version is null)
+                return OperationResult<ProductResponse>.NotFound("Version not found.");
+
             if (version.CreatedBy != submittedBy)
-                return null;
+                return OperationResult<ProductResponse>.Forbidden("You can only submit your own version.");
+
+            if (version.Status != WorkflowStatus.Draft)
+                return OperationResult<ProductResponse>.Invalid($"Cannot submit a version in '{version.Status}' state. It must be Draft.");
 
             version.Status = WorkflowStatus.Pending;
 
             await _dbContext.SaveChangesAsync();
-
-            return MapToResponse(product, version);
+            return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
         }
 
-        public async Task<ProductResponse> ApproveProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string approvedBy)
+        public async Task<OperationResult<ProductResponse>> ApproveProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string approvedBy)
         {
             var product = await GetTrackedProductAsync(workflowStatusChangeRequest.productId);
             if (product == null)
-                return null;
+                return OperationResult<ProductResponse>.NotFound("Product not found");
 
             var version = product.Versions.FirstOrDefault(v => v.Id == workflowStatusChangeRequest.versionId);
             if (version == null)
-                return null;
+                return OperationResult<ProductResponse>.NotFound("Version not found");
             if (version.CreatedBy == approvedBy)
-                return null;
+                return OperationResult<ProductResponse>.Forbidden("You cannot approve a product that you authored");
+            if (version.Status != WorkflowStatus.Pending)
+                return OperationResult<ProductResponse>.Invalid("You cannot approve a product that is not in the pending state");
 
             version.Status = WorkflowStatus.Approved;
             version.DecidedBy = approvedBy;
@@ -142,20 +149,22 @@ namespace SystemChallengeAPI.Services
 
             await _dbContext.SaveChangesAsync();
 
-            return MapToResponse(product, version);
+            return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
         }
 
-        public async Task<ProductResponse> RejectProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string rejectedBy)
+        public async Task<OperationResult<ProductResponse>> RejectProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string rejectedBy)
         {
             var product = await GetTrackedProductAsync(workflowStatusChangeRequest.productId);
             if (product == null)
-                return null;
+                return OperationResult<ProductResponse>.NotFound("Product not found");
 
             var version = product.Versions.FirstOrDefault(v => v.Id == workflowStatusChangeRequest.versionId);
             if (version == null)
-                return null;
+                return OperationResult<ProductResponse>.NotFound("Version not found");
             if (version.CreatedBy == rejectedBy)
-                return null;
+                return OperationResult<ProductResponse>.Forbidden("You cannot reject a product that you authored");
+            if (version.Status != WorkflowStatus.Pending)
+                return OperationResult<ProductResponse>.Invalid("You cannot reject a product that is not in the pending state");
 
             version.Status = WorkflowStatus.Rejected;
             version.DecidedBy = rejectedBy;
@@ -164,7 +173,44 @@ namespace SystemChallengeAPI.Services
 
             await _dbContext.SaveChangesAsync();
 
-            return MapToResponse(product, version);
+            return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
+        }
+
+        public async Task<OperationResult<ProductResponse>> SoftDeleteAsync(Guid id, string deletedBy)
+        {
+            var product = await GetTrackedProductAsync(id);
+            if (product is null)
+                return OperationResult<ProductResponse>.NotFound("Product not found.");
+
+            product.IsDeleted = true;
+            product.DeletedAt = DateTime.UtcNow;
+            product.DeletedBy = deletedBy;
+
+            await _dbContext.SaveChangesAsync();
+
+            return OperationResult<ProductResponse>.Ok(null);
+        }
+
+        public async Task<OperationResult<ProductResponse>> RestoreAsync(Guid id)
+        {
+            var product = await _dbContext.Products
+                .IgnoreQueryFilters()                 // <-- deleted products are invisible without this
+                .Include(p => p.Versions)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (product is null)
+                return OperationResult<ProductResponse>.NotFound("Product not found.");
+
+            if (!product.IsDeleted)
+                return OperationResult<ProductResponse>.Invalid("Cannot restore a product that is not deleted");
+
+            product.IsDeleted = false;
+            product.DeletedAt = null;
+            product.DeletedBy = null;
+
+            await _dbContext.SaveChangesAsync();
+
+            return OperationResult<ProductResponse>.Ok(null!);
         }
 
         private async Task<ProductVersion> GetLatestProductVersion(Product product)
@@ -198,7 +244,6 @@ namespace SystemChallengeAPI.Services
                 .Include(p => p.Versions)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
-
 
         private static ProductResponse MapToResponse(Product product, ProductVersion version)
         {
