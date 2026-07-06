@@ -26,6 +26,7 @@ builder.Services.AddSqlServer<ApplicationDbContext>
     (builder.Configuration.GetConnectionString("DefaultConnection"));
 
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProductProjector, ProductProjector>();
 
 var app = builder.Build();
 

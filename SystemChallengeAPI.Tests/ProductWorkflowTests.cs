@@ -1,4 +1,5 @@
-﻿using SystemChallengeAPI.Domain;
+﻿using Microsoft.EntityFrameworkCore;
+using SystemChallengeAPI.Domain;
 using SystemChallengeAPI.DTOs;
 using SystemChallengeAPI.Services;
 using Xunit;
@@ -13,7 +14,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Draft, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.ApproveProductVersion(
             new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id },
@@ -29,7 +30,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.ApproveProductVersion(
             new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id, DecisionReason = "ok" },
@@ -47,7 +48,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Manager);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.ApproveProductVersion(
             new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id },
@@ -61,7 +62,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Draft, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.SubmitVersionForReview(product.Id, version.Id, "someone-else@x.com");
 
@@ -73,7 +74,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, _) = await TestDb.SeedProduct(ctx, WorkflowStatus.Approved, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         await sut.SoftDeleteAsync(product.Id, Manager);
         var result = await sut.GetByIdAsync(product.Id);
@@ -86,7 +87,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.RejectProductVersion(
             new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id, DecisionReason = "bad sku" },
@@ -104,7 +105,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Manager);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.RejectProductVersion(
             new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id },
@@ -118,7 +119,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Draft, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.RejectProductVersion(
             new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id },
@@ -132,7 +133,7 @@ public class ProductWorkflowTests
     public async Task Approve_MissingProduct_ReturnsNotFound()
     {
         using var ctx = TestDb.NewContext();
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.ApproveProductVersion(
             new WorkflowStatusChangeRequest { productId = Guid.NewGuid(), versionId = Guid.NewGuid() },
@@ -146,7 +147,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, _) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.ApproveProductVersion(
             new WorkflowStatusChangeRequest { productId = product.Id, versionId = Guid.NewGuid() },  // real product, bogus version
@@ -160,7 +161,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Draft, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.SubmitVersionForReview(product.Id, version.Id, Capturer);
 
@@ -173,7 +174,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.SubmitVersionForReview(product.Id, version.Id, Capturer);
 
@@ -185,7 +186,7 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, _) = await TestDb.SeedProduct(ctx, WorkflowStatus.Approved, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         await sut.SoftDeleteAsync(product.Id, Manager);
         var restore = await sut.RestoreAsync(product.Id);
@@ -200,10 +201,84 @@ public class ProductWorkflowTests
     {
         using var ctx = TestDb.NewContext();
         var (product, _) = await TestDb.SeedProduct(ctx, WorkflowStatus.Approved, Capturer);
-        var sut = new ProductService(ctx);
+        var sut = TestDb.NewService(ctx);
 
         var result = await sut.RestoreAsync(product.Id);
 
         Assert.Equal(OperationStatus.InvalidTransition, result.Status);
+    }
+
+    [Fact]
+    public async Task Approve_ProjectsRowIntoReadStore()
+    {
+        using var ctx = TestDb.NewContext();
+        var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
+        var sut = TestDb.NewService(ctx);
+
+        await sut.ApproveProductVersion(
+            new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id },
+            Manager);
+
+        var row = await ctx.ProductReadModels.FindAsync(product.Id);
+        Assert.NotNull(row);
+        Assert.Equal(version.Name, row!.Name);
+        Assert.Equal(version.Id, row.VersionId);
+        Assert.Equal(Manager, row.ApprovedBy);
+    }
+
+    [Fact]
+    public async Task SoftDelete_RemovesRowFromReadStore()
+    {
+        using var ctx = TestDb.NewContext();
+        var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
+        var sut = TestDb.NewService(ctx);
+
+        await sut.ApproveProductVersion(
+            new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id },
+            Manager);
+        Assert.NotNull(await ctx.ProductReadModels.FindAsync(product.Id));
+
+        await sut.SoftDeleteAsync(product.Id, Manager);
+
+        Assert.Null(await ctx.ProductReadModels.FindAsync(product.Id));
+    }
+
+    [Fact]
+    public async Task Approve_SecondVersion_UpsertsSingleReadRow()
+    {
+        using var ctx = TestDb.NewContext();
+        var (product, v1) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
+        var sut = TestDb.NewService(ctx);
+
+        await sut.ApproveProductVersion(
+            new WorkflowStatusChangeRequest { productId = product.Id, versionId = v1.Id }, Manager);
+
+        var v2 = await TestDb.AddVersion(ctx, product.Id, 2, WorkflowStatus.Pending, Capturer, "V2 Name");
+        await sut.ApproveProductVersion(
+            new WorkflowStatusChangeRequest { productId = product.Id, versionId = v2.Id }, Manager);
+
+        var rowCount = await ctx.ProductReadModels.CountAsync(r => r.ProductId == product.Id);
+        var row = await ctx.ProductReadModels.FindAsync(product.Id);
+
+        Assert.Equal(1, rowCount);
+        Assert.Equal("V2 Name", row!.Name);
+        Assert.Equal(v2.Id, row.VersionId);
+    }
+
+    [Fact]
+    public async Task Restore_ApprovedProduct_ReprojectsReadRow()
+    {
+        using var ctx = TestDb.NewContext();
+        var (product, version) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
+        var sut = TestDb.NewService(ctx);
+
+        await sut.ApproveProductVersion(
+            new WorkflowStatusChangeRequest { productId = product.Id, versionId = version.Id }, Manager);
+        await sut.SoftDeleteAsync(product.Id, Manager);
+        Assert.Null(await ctx.ProductReadModels.FindAsync(product.Id));
+
+        await sut.RestoreAsync(product.Id);
+
+        Assert.NotNull(await ctx.ProductReadModels.FindAsync(product.Id));
     }
 }
