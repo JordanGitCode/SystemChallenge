@@ -1,0 +1,41 @@
+erDiagram
+      Product ||--o{ ProductVersion : "has versions"
+      Product |o--o| ProductVersion : "current approved (CurrentApprovedVersionId)"
+
+      Product {
+          Guid Id PK
+          bool IsDeleted "soft-delete flag (global query filter)"
+          DateTime DeletedAt "nullable"
+          string DeletedBy "nullable"
+          string CreatedBy
+          DateTime CreatedAt
+          Guid CurrentApprovedVersionId FK "nullable — points to live version"
+      }
+
+      ProductVersion {
+          Guid Id PK
+          Guid ProductId FK
+          int VersionNumber "unique per product"
+          string Name
+          string Description
+          decimal Price
+          string Sku
+          WorkflowStatus Status "Draft|Pending|Approved|Rejected"
+          string CreatedBy
+          DateTime CreatedAt
+          string DecidedBy "nullable — approver/rejecter"
+          DateTime DecidedAt "nullable"
+          string DecisionReason "nullable"
+      }
+
+      ProductReadModel {
+          Guid ProductId PK "= Product.Id"
+          string Name
+          string Description
+          decimal Price
+          string Sku
+          int VersionNumber
+          Guid VersionId "which approved version"
+          string ApprovedBy
+          DateTime ApprovedAt
+      }
