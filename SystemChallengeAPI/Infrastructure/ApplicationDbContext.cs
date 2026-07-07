@@ -173,6 +173,33 @@ public class ApplicationDbContext : DbContext
             }
         );
 
+        modelBuilder.Entity<ProductReadModel>().HasData(
+            new ProductReadModel
+            {
+                ProductId = new Guid("11111111-1111-1111-1111-111111111111"),
+                Name = "Wireless Mouse",
+                Description = "2.4GHz optical wireless mouse.",
+                Price = 299.99m,
+                Sku = "MSE-WL-001",
+                VersionNumber = 1,
+                VersionId = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
+                ApprovedBy = "manager@moyo.com",
+                ApprovedAt = new DateTime(2026, 5, 2, 10, 0, 0, DateTimeKind.Utc)
+            },
+            new ProductReadModel
+            {
+                ProductId = new Guid("22222222-2222-2222-2222-222222222222"),
+                Name = "Mechanical Keyboard",
+                Description = "Tactile mechanical keyboard, blue switches.",
+                Price = 899.99m,
+                Sku = "KBD-MEC-001",
+                VersionNumber = 1,
+                VersionId = new Guid("bbbbbbbb-0000-0000-0000-000000000001"),
+                ApprovedBy = "manager@moyo.com",
+                ApprovedAt = new DateTime(2026, 5, 4, 9, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
         //Add to end of migration
         //migrationBuilder.Sql("UPDATE Products SET CurrentApprovedVersionId = 'aaaaaaaa-0000-0000-0000-000000000001' WHERE Id = '11111111-1111-1111-1111-111111111111';");
         //migrationBuilder.Sql("UPDATE Products SET CurrentApprovedVersionId = 'bbbbbbbb-0000-0000-0000-000000000001' WHERE Id = '22222222-2222-2222-2222-222222222222';");

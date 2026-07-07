@@ -1,4 +1,5 @@
-﻿using SystemChallengeAPI.Domain;
+﻿using System.ComponentModel.DataAnnotations;
+using SystemChallengeAPI.Domain;
 
 namespace SystemChallengeAPI.DTOs
 {
