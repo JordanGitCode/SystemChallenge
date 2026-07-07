@@ -5,16 +5,16 @@ namespace SystemChallengeAPI.DTOs
     public class UpdateProductRequest
     {
         [Required]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [Required]
-        public string Description { get; set; }
+        public required string Description { get; set; }
 
         [Range(0.01, double.MaxValue)]
         public decimal Price { get; set; }
 
         [Required]
-        public string Sku { get; set; }
+        public required string Sku { get; set; }
 
     }
 }

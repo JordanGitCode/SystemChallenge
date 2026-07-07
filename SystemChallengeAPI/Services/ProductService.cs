@@ -96,7 +96,7 @@ namespace SystemChallengeAPI.Services
             var version = product.Versions.FirstOrDefault(v => v.Id == product.CurrentApprovedVersionId);
             if (version == null)
             {
-                version = await GetLatestProductVersion(product);
+                version = GetLatestProductVersion(product);
             }
             if (version == null)
             {
@@ -223,29 +223,22 @@ namespace SystemChallengeAPI.Services
             return OperationResult<ProductResponse>.Ok(null!);
         }
 
-        private async Task<ProductVersion> GetLatestProductVersion(Product product)
+        private static ProductVersion? GetLatestProductVersion(Product product)
         {
-            var version = product.Versions
+            return product.Versions
                     .OrderByDescending(v => v.VersionNumber)
                     .FirstOrDefault();
-
-            return version;
         }
 
         /* 
          * Get Product and all versions
          */
-        private async Task<Product> GetProductByIdAsync(Guid id)
+        private async Task<Product?> GetProductByIdAsync(Guid id)
         {
-            var product = await _dbContext.Products
+            return await _dbContext.Products
                 .AsNoTracking()
                 .Include(p => p.Versions)
                 .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (product == null)
-                return null;
-
-            return product;
         }
 
         private async Task<Product?> GetTrackedProductAsync(Guid id)

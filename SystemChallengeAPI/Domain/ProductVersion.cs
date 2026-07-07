@@ -6,14 +6,14 @@ public class ProductVersion
     public Guid ProductId {get; set;}
     public int VersionNumber {get; set;}
 
-    public string Name {get; set;}
-    public string Description {get; set;}
+    public string Name {get; set;} = string.Empty;
+    public string Description {get; set;} = string.Empty;
     public decimal Price {get; set;}
-    public string Sku {get; set;}
+    public string Sku {get; set;} = string.Empty;
 
     public WorkflowStatus Status {get; set;}
 
-    public string CreatedBy {get; set;}
+    public string CreatedBy {get; set;} = string.Empty;
     public DateTime CreatedAt {get; set;}
 
     public string? DecidedBy {get; set;}
