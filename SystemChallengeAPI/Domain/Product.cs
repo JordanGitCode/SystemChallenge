@@ -8,10 +8,10 @@ public class Product
     public DateTime? DeletedAt {get; set;}
     public string? DeletedBy {get;set;}
 
-    public string CreatedBy {get; set;}
+    public string CreatedBy {get; set;} = string.Empty;
     public DateTime CreatedAt {get; set;}
 
     public Guid? CurrentApprovedVersionId {get; set;}
 
-    public ICollection<ProductVersion> Versions {get; set;}
+    public ICollection<ProductVersion> Versions {get; set;} = new List<ProductVersion>();
 }
