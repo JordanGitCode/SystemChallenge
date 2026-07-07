@@ -10,10 +10,12 @@ namespace SystemChallengeAPI.Services
     public class ProductService : IProductService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IProductProjector _projector;
 
-        public ProductService(ApplicationDbContext dbContext)
+        public ProductService(ApplicationDbContext dbContext, IProductProjector projector)
         {
             _dbContext = dbContext;
+            _projector = projector;
         }
 
         public async Task<OperationResult<ProductResponse>> CreateAsync(CreateProductRequest req, string createdBy)
@@ -147,6 +149,7 @@ namespace SystemChallengeAPI.Services
 
             product.CurrentApprovedVersionId = version.Id;
 
+            await _projector.ProjectApprovedAsync(product, version);
             await _dbContext.SaveChangesAsync();
 
             return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
@@ -186,19 +189,20 @@ namespace SystemChallengeAPI.Services
             product.DeletedAt = DateTime.UtcNow;
             product.DeletedBy = deletedBy;
 
+            await _projector.RemoveAsync(id);
             await _dbContext.SaveChangesAsync();
 
-            return OperationResult<ProductResponse>.Ok(null);
+            return OperationResult<ProductResponse>.Ok(null!);
         }
 
         public async Task<OperationResult<ProductResponse>> RestoreAsync(Guid id)
         {
             var product = await _dbContext.Products
-                .IgnoreQueryFilters()                 // <-- deleted products are invisible without this
+                .IgnoreQueryFilters()
                 .Include(p => p.Versions)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
-            if (product is null)
+            if (product == null)
                 return OperationResult<ProductResponse>.NotFound("Product not found.");
 
             if (!product.IsDeleted)
@@ -207,6 +211,12 @@ namespace SystemChallengeAPI.Services
             product.IsDeleted = false;
             product.DeletedAt = null;
             product.DeletedBy = null;
+
+            if (product.CurrentApprovedVersionId != null)
+            {
+                var approved = product.Versions.First(v => v.Id == product.CurrentApprovedVersionId);
+                await _projector.ProjectApprovedAsync(product, approved);
+            }
 
             await _dbContext.SaveChangesAsync();
 

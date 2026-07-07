@@ -49,8 +49,8 @@ namespace SystemChallengeAPI.Controllers
             return ToActionResult(result);
         }
 
-        [HttpPost("submit/{productId}/{versionId}")]
-        public async Task<IActionResult> SubmitVersionForReview(Guid productId, Guid versionId)
+        [HttpPost("submit")]
+        public async Task<IActionResult> SubmitVersionForReview([FromBody] WorkflowStatusChangeRequest workflowStatusChangeRequest)
         {
             var submittedBy = User.FindFirstValue(ClaimTypes.Upn)
                             ?? User.Identity?.Name;
@@ -60,7 +60,7 @@ namespace SystemChallengeAPI.Controllers
                 return BadRequest("An unexpected error has occurred");
             }
 
-            var result = await _products.SubmitVersionForReview(productId, versionId, submittedBy);
+            var result = await _products.SubmitVersionForReview(workflowStatusChangeRequest.productId, workflowStatusChangeRequest.versionId, submittedBy);
             return ToActionResult(result);
         }
 

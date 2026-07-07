@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
@@ -24,8 +25,11 @@ builder.Services.AddAuthorizationBuilder()
 
 builder.Services.AddSqlServer<ApplicationDbContext>
     (builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.AddDbContext<ProductReadDbContext>(options =>
+      options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProductProjector, ProductProjector>();
 
 var app = builder.Build();
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SystemChallengeAPI.Infrastructure;
 
@@ -11,9 +12,11 @@ using SystemChallengeAPI.Infrastructure;
 namespace SystemChallengeAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260706160125_AddReadModel")]
+    partial class AddReadModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -257,32 +260,6 @@ namespace SystemChallengeAPI.Migrations
                     b.HasIndex("Sku");
 
                     b.ToTable("ProductReadModel", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            ProductId = new Guid("11111111-1111-1111-1111-111111111111"),
-                            ApprovedAt = new DateTime(2026, 5, 2, 10, 0, 0, 0, DateTimeKind.Utc),
-                            ApprovedBy = "manager@moyo.com",
-                            Description = "2.4GHz optical wireless mouse.",
-                            Name = "Wireless Mouse",
-                            Price = 299.99m,
-                            Sku = "MSE-WL-001",
-                            VersionId = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
-                            VersionNumber = 1
-                        },
-                        new
-                        {
-                            ProductId = new Guid("22222222-2222-2222-2222-222222222222"),
-                            ApprovedAt = new DateTime(2026, 5, 4, 9, 0, 0, 0, DateTimeKind.Utc),
-                            ApprovedBy = "manager@moyo.com",
-                            Description = "Tactile mechanical keyboard, blue switches.",
-                            Name = "Mechanical Keyboard",
-                            Price = 899.99m,
-                            Sku = "KBD-MEC-001",
-                            VersionId = new Guid("bbbbbbbb-0000-0000-0000-000000000001"),
-                            VersionNumber = 1
-                        });
                 });
 
             modelBuilder.Entity("SystemChallengeAPI.Domain.Product", b =>

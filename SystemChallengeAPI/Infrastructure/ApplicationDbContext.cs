@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using SystemChallengeAPI.Domain;
+using SystemChallengeAPI.ReadModel;
 
 namespace SystemChallengeAPI.Infrastructure;
 
@@ -14,6 +15,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Product> Products {  get; set; }
     public DbSet<ProductVersion> ProductVersions { get; set; }
+    public DbSet<ProductReadModel> ProductReadModels { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,6 +57,20 @@ public class ApplicationDbContext : DbContext
             productVersion.Property(v => v.DecidedBy).HasMaxLength(256);
 
             productVersion.Property(v => v.Status).HasConversion<string>().HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<ProductReadModel>(readModel =>
+        {
+            readModel.ToTable("ProductReadModel");
+            readModel.HasKey(r => r.ProductId);
+
+            readModel.Property(r => r.Name).HasMaxLength(200);
+            readModel.Property(r => r.Sku).HasMaxLength(64);
+            readModel.Property(r => r.Price).HasPrecision(18, 2);
+            readModel.Property(r => r.ApprovedBy).HasMaxLength(256);
+
+            // Revisit
+            readModel.HasIndex(r => r.Sku);
         });
 
         SeedData(modelBuilder);
@@ -154,6 +170,33 @@ public class ApplicationDbContext : DbContext
                 Status = WorkflowStatus.Draft,
                 CreatedBy = capturer,
                 CreatedAt = new DateTime(2026, 6, 10, 8, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        modelBuilder.Entity<ProductReadModel>().HasData(
+            new ProductReadModel
+            {
+                ProductId = new Guid("11111111-1111-1111-1111-111111111111"),
+                Name = "Wireless Mouse",
+                Description = "2.4GHz optical wireless mouse.",
+                Price = 299.99m,
+                Sku = "MSE-WL-001",
+                VersionNumber = 1,
+                VersionId = new Guid("aaaaaaaa-0000-0000-0000-000000000001"),
+                ApprovedBy = "manager@moyo.com",
+                ApprovedAt = new DateTime(2026, 5, 2, 10, 0, 0, DateTimeKind.Utc)
+            },
+            new ProductReadModel
+            {
+                ProductId = new Guid("22222222-2222-2222-2222-222222222222"),
+                Name = "Mechanical Keyboard",
+                Description = "Tactile mechanical keyboard, blue switches.",
+                Price = 899.99m,
+                Sku = "KBD-MEC-001",
+                VersionNumber = 1,
+                VersionId = new Guid("bbbbbbbb-0000-0000-0000-000000000001"),
+                ApprovedBy = "manager@moyo.com",
+                ApprovedAt = new DateTime(2026, 5, 4, 9, 0, 0, DateTimeKind.Utc)
             }
         );
 
