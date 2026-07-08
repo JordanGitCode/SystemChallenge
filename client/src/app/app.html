@@ -1,0 +1,15 @@
+<nav class="navbar">
+  <span class="navbar__brand">MOYO Products</span>
+  @if (isLoggedIn()) {
+    <a routerLink="/products">Products</a>
+    <a routerLink="/capture">New Product</a>
+    <span class="spacer"></span>
+    <button class="btn btn--ghost" (click)="logout()">Logout</button>
+  } @else {
+    <span class="spacer"></span>
+    <button class="btn btn--primary" (click)="login()">Login</button>
+  }
+</nav>
+<main class="container">
+  <router-outlet />
+</main>
