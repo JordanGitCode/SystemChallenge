@@ -31,6 +31,11 @@ builder.Services.AddDbContext<ProductReadDbContext>(options =>
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductProjector, ProductProjector>();
 
+builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
+      .WithOrigins("http://localhost:4200")
+      .AllowAnyHeader()
+      .AllowAnyMethod()));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -41,6 +46,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

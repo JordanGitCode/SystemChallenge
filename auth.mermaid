@@ -1,0 +1,37 @@
+sequenceDiagram
+      autonumber
+      actor U as User (Browser)
+      participant SPA as Angular SPA<br/>(MSAL)
+      participant AAD as Microsoft Entra ID<br/>(tenant b19dc195…)
+      participant API as .NET API<br/>(aud api://e2ce9829…)
+
+      Note over U,API: Phase 1 — Interactive login (once per session)
+
+      U->>SPA: Click "Login"
+      SPA->>SPA: Generate PKCE verifier + challenge
+      SPA->>AAD: Redirect to /authorize<br/>(client_id, scope=user-access,<br/>redirect_uri, code_challenge)
+      AAD->>U: Present sign-in (password, MFA)
+      U->>AAD: Authenticate
+      AAD->>SPA: Redirect to localhost:4200/?code=…
+      SPA->>AAD: POST /token (code + PKCE verifier)
+      AAD->>SPA: Access token (JWT) + ID token + refresh token
+      SPA->>SPA: Cache tokens (localStorage),<br/>setActiveAccount()
+      Note over SPA: isLoggedIn = true → MsalGuard opens /products
+
+      Note over U,API: Phase 2 — Authenticated API call (every request)
+
+      U->>SPA: Navigate to /products
+      SPA->>SPA: MsalInterceptor matches URL in<br/>protectedResourceMap → acquire token silently
+      SPA->>API: OPTIONS /product (CORS preflight)
+      API->>SPA: 200 — origin + Authorization header allowed
+      SPA->>API: GET /product<br/>Authorization: Bearer <JWT>
+      API->>API: Validate signature (cached Entra keys),<br/>issuer, audience, expiry
+      API->>API: [Authorize(CanCapture)] → check roles claim
+      alt Token valid AND role allowed
+          API->>SPA: 200 + product list JSON
+          SPA->>U: Render table
+      else Invalid token
+          API->>SPA: 401 Unauthorized
+      else Valid token, wrong role
+          API->>SPA: 403 Forbidden
+      end
