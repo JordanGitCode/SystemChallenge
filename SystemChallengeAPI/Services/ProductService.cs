@@ -106,6 +106,27 @@ namespace SystemChallengeAPI.Services
             return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
         }
 
+        public async Task<List<ProductResponse>> GetAllProductsAsync()
+        {
+            var products = await _dbContext.Products
+                .AsNoTracking()
+                .Include(p => p.Versions)
+                .ToListAsync();
+
+            List<ProductResponse> productResponses = new List<ProductResponse>();
+
+            foreach (var product in products)
+            {
+                var version = GetVerifiedProductVersion(product);
+                if (version == null)
+                    continue;
+
+                productResponses.Add(MapToResponse(product, version));
+            }
+
+            return productResponses;
+        }
+
         public async Task<OperationResult<ProductResponse>> SubmitVersionForReview(Guid productId, Guid versionId, string submittedBy)
         {
             var product = await GetTrackedProductAsync(productId);
@@ -228,6 +249,15 @@ namespace SystemChallengeAPI.Services
             return product.Versions
                     .OrderByDescending(v => v.VersionNumber)
                     .FirstOrDefault();
+        }
+
+        private static ProductVersion? GetVerifiedProductVersion(Product product)
+        {
+            var version = product.Versions.FirstOrDefault(v => v.Id == product.CurrentApprovedVersionId);
+            if (version == null)
+                version = product.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+
+            return version;
         }
 
         /* 
