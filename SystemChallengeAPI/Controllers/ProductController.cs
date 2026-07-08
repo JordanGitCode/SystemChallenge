@@ -23,6 +23,21 @@ namespace SystemChallengeAPI.Controllers
             _products = products;
         }
 
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetProductById(Guid id)
+        {
+            var result = await _products.GetByIdAsync(id);
+            return ToActionResult(result);
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ProductResponse>>> GetAllProducts()
+        {
+            var result = await _products.GetAllProductsAsync();
+
+            return Ok(result);
+        }
+
         [HttpPost("capture")]
         public async Task<IActionResult> CaptureProduct([FromBody] CreateProductRequest req)
         {
@@ -121,13 +136,6 @@ namespace SystemChallengeAPI.Controllers
         public async Task<IActionResult> RestoreProduct(Guid id)
         {
             var result = await _products.RestoreAsync(id);
-            return ToActionResult(result);
-        }
-
-        [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetProductById(Guid id)
-        {
-            var result = await _products.GetByIdAsync(id);
             return ToActionResult(result);
         }
 
