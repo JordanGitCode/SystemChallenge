@@ -5,10 +5,15 @@ import { apiBaseUrl } from '../auth-config';
 import { ProductResponse } from '../models/product';
 import { CreateProductRequest } from '../models/create-product-request';
 import { PendingVersion } from '../models/pending-version';
+import { ProductReadModel } from '../models/product-read';
 
 @Injectable({ providedIn: 'root' })
 export class ProductsService {
   private http = inject(HttpClient);
+
+  getCatalog(): Observable<ProductReadModel[]> {
+    return this.http.get<ProductReadModel[]>(`${apiBaseUrl}/catalog`);
+  }
 
   getAll(): Observable<ProductResponse[]> {
     return this.http.get<ProductResponse[]>(`${apiBaseUrl}/product`);
