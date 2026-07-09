@@ -281,4 +281,38 @@ public class ProductWorkflowTests
 
         Assert.NotNull(await ctx.ProductReadModels.FindAsync(product.Id));
     }
+
+    [Fact]
+    public async Task GetPending_IncludesPendingVersions_AndExcludesOtherStatuses()
+    {
+        using var ctx = TestDb.NewContext();
+        var (_, draft)    = await TestDb.SeedProduct(ctx, WorkflowStatus.Draft, Capturer);
+        var (_, pending)  = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
+        var (_, approved) = await TestDb.SeedProduct(ctx, WorkflowStatus.Approved, Capturer);
+        var sut = TestDb.NewService(ctx);
+
+        var ids = (await sut.GetPendingVersionsAsync()).Select(r => r.VersionId).ToHashSet();
+
+        Assert.Contains(pending.Id, ids);
+        Assert.DoesNotContain(draft.Id, ids);
+        Assert.DoesNotContain(approved.Id, ids);
+    }
+
+    [Fact]
+    public async Task GetPending_ExcludesVersionsOfSoftDeletedProducts()
+    {
+        using var ctx = TestDb.NewContext();
+        var (product, pending) = await TestDb.SeedProduct(ctx, WorkflowStatus.Pending, Capturer);
+        var sut = TestDb.NewService(ctx);
+
+        // present in the queue before deletion
+        var before = (await sut.GetPendingVersionsAsync()).Select(r => r.VersionId);
+        Assert.Contains(pending.Id, before);
+
+        await sut.SoftDeleteAsync(product.Id, Manager);
+
+        // gone after the product is soft-deleted, even though the version is still Pending
+        var after = (await sut.GetPendingVersionsAsync()).Select(r => r.VersionId);
+        Assert.DoesNotContain(pending.Id, after);
+    }
 }

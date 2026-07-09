@@ -1,17 +1,7 @@
-<h2>Capture Product</h2>
-<form [formGroup]="form" (ngSubmit)="submit()">
-<label>Name <input formControlName="name" /></label>
-@if (form.controls.name.touched && form.controls.name.invalid) { <small style="color:red">Name is required (max 200)</small> }
-
-<label>Description <textarea formControlName="description"></textarea></label>
-@if (form.controls.description.touched && form.controls.description.invalid) { <small style="color:red">Description is required</small> }
-
-<label>Price <input type="number" step="0.01" formControlName="price" /></label>
-@if (form.controls.price.touched && form.controls.price.hasError('min')) { <small style="color:red">Price must be greater than 0</small> }
-
-<label>SKU <input formControlName="sku" /></label>
-@if (form.controls.sku.touched && form.controls.sku.invalid) { <small style="color:red">SKU is required (max 64)</small> }
-
-@if (error()) { <p style="color:red">{{ error() }}</p> }
-<button type="submit" [disabled]="submitting()">Create</button>
-</form>
+<app-product-form
+  heading="Capture Product"
+  submitLabel="Create"
+  [submitting]="submitting()"
+  [error]="error()"
+  (save)="create($event)"
+/>

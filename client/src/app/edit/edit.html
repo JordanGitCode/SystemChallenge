@@ -1,0 +1,9 @@
+<app-product-form
+  heading="Edit Product"
+  note="Saving creates a new draft version for review."
+  submitLabel="Save changes"
+  [initialValue]="initial()"
+  [submitting]="submitting()"
+  [error]="error()"
+  (save)="save($event)"
+/>

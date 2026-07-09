@@ -139,6 +139,14 @@ namespace SystemChallengeAPI.Controllers
             return ToActionResult(result);
         }
 
+        [Authorize(Policy = Policies.CanApprove)]
+        [HttpGet("pending")]
+        public async Task<ActionResult<IEnumerable<PendingVersionResponse>>> GetPendingVersions()
+        {
+            var result = await _products.GetPendingVersionsAsync();
+            return Ok(result);
+        }
+
         private IActionResult ToActionResult(OperationResult<ProductResponse> result)
         {
 

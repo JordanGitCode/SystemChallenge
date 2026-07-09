@@ -3,6 +3,9 @@
   @if (isLoggedIn()) {
     <a routerLink="/products">Products</a>
     <a routerLink="/capture">New Product</a>
+    @if (isManager()) {
+      <a routerLink="/approvals">Approvals</a>
+    }
     <span class="spacer"></span>
     <button class="btn btn--ghost" (click)="logout()">Logout</button>
   } @else {

@@ -80,8 +80,8 @@ namespace SystemChallengeAPI.Services
             return OperationResult<ProductResponse>.Ok(MapToResponse(product, version));
         }
 
-        /* 
-         * Get Product and the approved version or latest version if none approved 
+        /*
+         * Get Product and its latest version (management view — shows in-flight edits)
          */
         public async Task<OperationResult<ProductResponse>> GetByIdAsync(Guid id)
         {
@@ -93,11 +93,7 @@ namespace SystemChallengeAPI.Services
             if (product == null)
                 return OperationResult<ProductResponse>.NotFound("Product not found");
 
-            var version = product.Versions.FirstOrDefault(v => v.Id == product.CurrentApprovedVersionId);
-            if (version == null)
-            {
-                version = GetLatestProductVersion(product);
-            }
+            var version = GetLatestProductVersion(product);
             if (version == null)
             {
                 return OperationResult<ProductResponse>.NotFound("No versions found");
@@ -117,7 +113,7 @@ namespace SystemChallengeAPI.Services
 
             foreach (var product in products)
             {
-                var version = GetVerifiedProductVersion(product);
+                var version = GetLatestProductVersion(product);
                 if (version == null)
                     continue;
 
@@ -244,6 +240,28 @@ namespace SystemChallengeAPI.Services
             return OperationResult<ProductResponse>.Ok(null!);
         }
 
+        public async Task<List<PendingVersionResponse>> GetPendingVersionsAsync()
+        {
+            return await _dbContext.Products
+                .AsNoTracking()
+                .SelectMany(p => p.Versions)
+                .Where(v => v.Status == WorkflowStatus.Pending)
+                .OrderBy(v => v.CreatedAt)
+                .Select(v => new PendingVersionResponse
+                {
+                    ProductId = v.ProductId,
+                    VersionId = v.Id,
+                    VersionNumber = v.VersionNumber,
+                    Name = v.Name,
+                    Description = v.Description,
+                    Price = v.Price,
+                    Sku = v.Sku,
+                    CreatedBy = v.CreatedBy,
+                    CreatedAt = v.CreatedAt
+                })
+                .ToListAsync();
+        }
+
         private static ProductVersion? GetLatestProductVersion(Product product)
         {
             return product.Versions
@@ -251,16 +269,7 @@ namespace SystemChallengeAPI.Services
                     .FirstOrDefault();
         }
 
-        private static ProductVersion? GetVerifiedProductVersion(Product product)
-        {
-            var version = product.Versions.FirstOrDefault(v => v.Id == product.CurrentApprovedVersionId);
-            if (version == null)
-                version = product.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
-
-            return version;
-        }
-
-        /* 
+        /*
          * Get Product and all versions
          */
         private async Task<Product?> GetProductByIdAsync(Guid id)
