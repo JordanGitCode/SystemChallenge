@@ -1,15 +1,46 @@
-<h2>Products</h2>
-@if (error()) { <p class="text-danger">{{ error() }}</p> }
-<table class="table">
-<thead><tr><th>Name</th><th>SKU</th><th>Price</th><th>Status</th></tr></thead>
-<tbody>
-    @for (p of products(); track p.id) {
-    <tr>
-        <td>{{ p.name }}</td>
-        <td>{{ p.sku }}</td>
-        <td>{{ p.price | currency }}</td>
-        <td><span class="badge" [class]="'badge badge--' + statusLabel(p.status).toLowerCase()">{{ statusLabel(p.status) }}</span></td>
-    </tr>
-    }
-</tbody>
-</table>
+<div class="card">
+  <h2>Products</h2>
+  @if (error()) {
+    <p class="text-danger">{{ error() }}</p>
+  }
+  @if (products().length === 0) {
+    <p class="text-muted">No products yet.</p>
+  } @else {
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>SKU</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of products(); track p.id) {
+            <tr>
+              <td>{{ p.name }}</td>
+              <td>{{ p.sku }}</td>
+              <td>{{ p.price | currency }}</td>
+              <td>
+                <span class="badge" [class]="'badge badge--' + statusLabel(p.status).toLowerCase()">{{
+                  statusLabel(p.status)
+                }}</span>
+              </td>
+              <td class="actions">
+                <a class="btn btn--ghost btn--sm" [routerLink]="['/products', p.id, 'edit']">Edit</a>
+                @if (p.status === 0) {
+                  <button class="btn btn--ghost btn--sm" (click)="submit(p)">Submit</button>
+                }
+                @if (user.isManager()) {
+                  <button class="btn btn--danger btn--sm" (click)="remove(p)">Delete</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -1,4 +1,4 @@
-import { PublicClientApplication, InteractionType, IPublicClientApplication, LogLevel } from '@azure/msal-browser';
+import { PublicClientApplication, InteractionType, IPublicClientApplication } from '@azure/msal-browser';
 import { MsalGuardConfiguration, MsalInterceptorConfiguration } from '@azure/msal-angular';
 
 const tenantId  = 'b19dc195-e548-4aa9-9997-fad8cac0bff4';
@@ -30,6 +30,7 @@ export function MSALInterceptorConfigFactory(): MsalInterceptorConfiguration {
         [`${apiBaseUrl}/product/*`,  [apiScope]],
         [`${apiBaseUrl}/catalog`,    [apiScope]],
         [`${apiBaseUrl}/catalog/*`,  [apiScope]],
+        [`${apiBaseUrl}/me`,         [apiScope]],
     ]);
 
     return { interactionType: InteractionType.Redirect, protectedResourceMap: map };

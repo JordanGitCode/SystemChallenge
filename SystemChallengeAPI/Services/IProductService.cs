@@ -14,5 +14,6 @@ namespace SystemChallengeAPI.Services
         Task<OperationResult<ProductResponse>> RejectProductVersion(WorkflowStatusChangeRequest workflowStatusChangeRequest, string rejectedBy);
         Task<OperationResult<ProductResponse>> SoftDeleteAsync(Guid id, string deletedBy);
         Task<OperationResult<ProductResponse>> RestoreAsync(Guid id);
+        Task<List<PendingVersionResponse>> GetPendingVersionsAsync();
     }
 }

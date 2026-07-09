@@ -4,17 +4,64 @@ import { Observable } from 'rxjs';
 import { apiBaseUrl } from '../auth-config';
 import { ProductResponse } from '../models/product';
 import { CreateProductRequest } from '../models/create-product-request';
+import { PendingVersion } from '../models/pending-version';
 
 @Injectable({ providedIn: 'root' })
 export class ProductsService {
+  private http = inject(HttpClient);
 
-    private http = inject(HttpClient);
-    
-    getAll(): Observable<ProductResponse[]> {
-        return this.http.get<ProductResponse[]>(`${apiBaseUrl}/product`);
-    }
+  getAll(): Observable<ProductResponse[]> {
+    return this.http.get<ProductResponse[]>(`${apiBaseUrl}/product`);
+  }
 
-    create(req: CreateProductRequest): Observable<ProductResponse> {
-        return this.http.post<ProductResponse>(`${apiBaseUrl}/product/capture`, req);
-    }
+  getById(id: string): Observable<ProductResponse> {
+    return this.http.get<ProductResponse>(`${apiBaseUrl}/product/${id}`);
+  }
+
+  update(id: string, req: CreateProductRequest): Observable<ProductResponse> {
+    return this.http.post<ProductResponse>(`${apiBaseUrl}/product/update/${id}`, req);
+  }
+
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${apiBaseUrl}/product/${id}`);
+  }
+
+  create(req: CreateProductRequest): Observable<ProductResponse> {
+    return this.http.post<ProductResponse>(`${apiBaseUrl}/product/capture`, req);
+  }
+
+  submitForReview(productId: string, versionId: string): Observable<ProductResponse> {
+    return this.http.post<ProductResponse>(`${apiBaseUrl}/product/submit`, {
+      productId,
+      versionId,
+    });
+  }
+
+  getPending(): Observable<PendingVersion[]> {
+    return this.http.get<PendingVersion[]>(`${apiBaseUrl}/product/pending`);
+  }
+
+  approve(
+    productId: string,
+    versionId: string,
+    decisionReason?: string,
+  ): Observable<ProductResponse> {
+    return this.http.post<ProductResponse>(`${apiBaseUrl}/product/approve`, {
+      productId,
+      versionId,
+      decisionReason,
+    });
+  }
+
+  reject(
+    productId: string,
+    versionId: string,
+    decisionReason?: string,
+  ): Observable<ProductResponse> {
+    return this.http.post<ProductResponse>(`${apiBaseUrl}/product/reject`, {
+      productId,
+      versionId,
+      decisionReason,
+    });
+  }
 }

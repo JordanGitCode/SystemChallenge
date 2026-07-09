@@ -19,7 +19,8 @@ namespace SystemChallengeAPI.API
                 ?? User.FindFirstValue("name")
                 ?? User.FindFirstValue("preferred_username");
 
-            var roles = User.FindAll("roles").Select(c => c.Value).ToArray();
+            var identity = (ClaimsIdentity)User.Identity!;
+            var roles = User.FindAll(identity.RoleClaimType).Select(c => c.Value).ToArray();
 
             return Ok(new { name, roles, claims = User.Claims.Select(c => new { c.Type, c.Value }) });
         }
