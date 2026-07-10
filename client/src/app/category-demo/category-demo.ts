@@ -11,16 +11,23 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 })
 export class CategoryDemo implements OnInit {
   private service = inject(ProductsService);
-  protected readonly catalog = signal<ProductReadModel[]>([]);
+
+  protected readonly items = signal<ProductReadModel[]>([]);
+  protected readonly hasMore = signal(false);
   protected readonly error = signal<string | null>(null);
+  private cursor = 0;
 
   ngOnInit() {
     this.load();
   }
 
   load() {
-    this.service.getCatalog().subscribe({
-      next: (p) => this.catalog.set(p),
+    this.service.getCatalog(this.cursor, 3).subscribe({
+      next: (page) => {
+        this.items.update((current) => [...current, ...page.items]);
+        this.cursor = page.nextCursor;
+        this.hasMore.set(page.hasMore);
+      },
       error: () => this.error.set('Failed to load products'),
     });
   }
