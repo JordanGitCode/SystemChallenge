@@ -64,12 +64,14 @@ public class ApplicationDbContext : DbContext
             readModel.ToTable("ProductReadModel");
             readModel.HasKey(r => r.ProductId);
 
+            readModel.Property(r => r.Sequence).UseIdentityColumn();
+            readModel.HasIndex(r => r.Sequence).IsUnique();
+
             readModel.Property(r => r.Name).HasMaxLength(200);
             readModel.Property(r => r.Sku).HasMaxLength(64);
             readModel.Property(r => r.Price).HasPrecision(18, 2);
             readModel.Property(r => r.ApprovedBy).HasMaxLength(256);
 
-            // Revisit
             readModel.HasIndex(r => r.Sku);
         });
 
