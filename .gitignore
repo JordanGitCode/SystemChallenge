@@ -60,6 +60,7 @@ nunit-*.xml
 Resources
 .vs
 *.user
+own-notes/
 
 # Node / Angular frontend (client/)
 node_modules/
